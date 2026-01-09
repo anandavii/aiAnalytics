@@ -58,10 +58,27 @@ npm install
 npm run dev
 ```
 
-## 🧪 Testing the App
+### 4. Configuration
+The application uses a `.env` file in `v1.0/backend/.env` for configuration.
+
+**LLM Provider (New in v1.3):**
+You can switch between Google Gemini (Default) and OpenAI (ChatGPT).
+
+*   **To use Google Gemini:**
+    ```bash
+    LLM_PROVIDER=gemini
+    GEMINI_API_KEY=your_gemini_key
+    ```
+*   **To use OpenAI:**
+    ```bash
+    LLM_PROVIDER=openai
+    OPENAI_API_KEY=your_openai_key
+    ```
+*After changing the provider, you must restart the application.*
+
+### 5. Running the App
 
 1. Open your browser to `http://localhost:3000`
 2. Click **Get Started**.
 3. **Upload**: Use the provided `test_data.csv` (or any CSV/Excel).
 4. **Clean**: Go to the "Data Cleaning" tab to see AI suggestions.
-5. **Chat**: Go to the "Analytics Chat" tab and ask questions like "Show sales over time".
