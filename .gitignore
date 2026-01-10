@@ -22,3 +22,4 @@ build/
 data/
 !data/.gitkeep
 test_data.csv
+llm_debug.log
