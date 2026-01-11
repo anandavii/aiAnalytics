@@ -7,10 +7,10 @@ echo "   AI Analytics Dashboard Launcher"
 echo "========================================"
 
 # Check for API Key
-if [ ! -f "v1.0/backend/.env" ]; then
-    echo "⚠️  WARNING: v1.0/backend/.env file not found!"
+if [ ! -f "backend/.env" ]; then
+    echo "⚠️  WARNING: backend/.env file not found!"
     echo "   Please create it and add your GEMINI_API_KEY."
-    echo "   cp v1.0/.env.example v1.0/backend/.env"
+    echo "   cp .env.example backend/.env"
     echo "========================================"
     sleep 2
 fi
@@ -36,7 +36,7 @@ done
 
 # Start Backend
 echo "🚀 Starting Backend (FastAPI)..."
-cd v1.0/backend || exit
+cd backend || exit
 if [ ! -d "venv" ]; then
     echo "📦 Creating virtual environment..."
     python3 -m venv venv
@@ -50,6 +50,10 @@ echo "✅ Backend running on http://localhost:8000"
 # Start Frontend
 echo "🚀 Starting Frontend (Next.js)..."
 cd ../frontend || exit
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing frontend dependencies..."
+    npm install > /dev/null 2>&1
+fi
 npm run dev &
 FRONTEND_PID=$!
 echo "✅ Frontend running on http://localhost:3000"
