@@ -25,7 +25,7 @@ class GeminiClient:
 
         # Sensible defaults based on available models
         default_fallbacks = [
-            "gemini-2.0-flash-001",
+            #"gemini-2.0-flash-001",
             "gemini-flash-latest",
             "gemini-2.0-flash-lite",
             "gemini-2.5-flash",
