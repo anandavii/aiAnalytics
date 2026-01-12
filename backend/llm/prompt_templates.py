@@ -316,7 +316,7 @@ Available Charts:
 {charts_context}
 
 CRITICAL RULES:
-1. Write ONLY plain English prose, 1-3 short paragraphs maximum.
+1. Output MUST be valid JSON with a single "story" key. The value of "story" must be plain English prose, 1-3 short paragraphs.
 2. DO NOT use bullet points, numbered lists, or markdown formatting.
 3. DO NOT include any code, JSON, or technical syntax.
 4. DO NOT invent or hallucinate any numbers not provided in the KPIs above.
@@ -324,6 +324,7 @@ CRITICAL RULES:
 6. Keep the tone professional, insightful, and business-friendly.
 7. Focus on trends, comparisons, and actionable patterns.
 8. If date/time trends exist, mention seasonal or temporal patterns.
+9. Avoid vague phrases like "significant impact" unless clearly supported by the KPIs or charts.
 
 Your output must be a JSON object with a single "story" key:
 {{
