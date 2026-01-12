@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Build artifacts
+.next/
+dist/
+out/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Data and uploads (local development only)
+data/
+uploads/
+exports/
+
+# Logs
+*.log
+llm_debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test files
+test_data.csv
+coverage/
+.nyc_output/
+
+# Documentation
+*.md
+!README.md
+
+# Archives
+*.tgz
+*.tar.gz
+*.zip
