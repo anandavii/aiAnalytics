@@ -26,9 +26,10 @@ class GeminiClient:
         # Sensible defaults based on available models
         default_fallbacks = [
             #"gemini-2.0-flash-001",
+            "gemini-1.5-flash",
             "gemini-flash-latest",
             "gemini-2.0-flash-lite",
-            "gemini-2.5-flash",
+            "gemini-1.5-pro",
         ]
 
         self.model_candidates: List[str] = [primary_model, *fallback_models, *default_fallbacks]
@@ -100,7 +101,7 @@ class GeminiClient:
         )
         return await self._generate_with_retry(prompt)
 
-    async def _generate_with_retry(self, prompt: str, retries: int = 3) -> Dict[str, Any]:
+    async def _generate_with_retry(self, prompt: str, retries: int = 5) -> Dict[str, Any]:
         """Handles content generation with retries/fallbacks for 429s and JSON parsing."""
         last_error = None
         model_index = 0
@@ -121,7 +122,7 @@ class GeminiClient:
             except Exception as e:
                 error_msg = str(e)
                 if self._is_rate_limit_error(e):
-                    wait_time = min((2**attempt) * 2, 15)  # 2, 4, 8, 15...
+                    wait_time = min((2**attempt) * 4, 60)  # 4, 8, 16, 32, 60...
                     print(f"Rate limited on {model_name}. Retrying in {wait_time}s...")
                     last_error = f"Rate limit exceeded on {model_name}: {e}"
                     await asyncio.sleep(wait_time)

@@ -8,6 +8,7 @@ from services.report_service import ReportService
 from services.data_story_service import DataStoryService
 from llm.gemini_client import GeminiClient
 from llm.openai_client import OpenAIClient
+from llm.openrouter_client import OpenRouterClient
 from schemas import DatasetMetadata, CleaningRequest, AnalyticsQuery, CleaningSuggestion, AnalyticsResponse, Report, DashboardTile, SuggestionRequest, SuggestionResponse, StructuredChart
 from dotenv import load_dotenv
 import os
@@ -36,9 +37,11 @@ report_service = ReportService()
 llm_provider_env = os.getenv("LLM_PROVIDER", "gemini").lower()
 llm_provider = llm_provider_env
 
-# Auto mode prefers OpenAI if available (often higher rate limits), otherwise Gemini
+# Auto mode prefers OpenAI/OpenRouter if available (often higher rate limits), otherwise Gemini
 if llm_provider_env == "auto":
-    if os.getenv("OPENAI_API_KEY"):
+    if os.getenv("OPENROUTER_API_KEY"):
+         llm_provider = "openrouter"
+    elif os.getenv("OPENAI_API_KEY"):
         llm_provider = "openai"
     elif os.getenv("GEMINI_API_KEY"):
         llm_provider = "gemini"
@@ -46,6 +49,8 @@ if llm_provider_env == "auto":
 try:
     if llm_provider == "openai":
         llm_client = OpenAIClient()
+    elif llm_provider == "openrouter":
+        llm_client = OpenRouterClient()
     else:
         llm_provider = "gemini"
         llm_client = GeminiClient()
