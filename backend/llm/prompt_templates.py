@@ -302,3 +302,37 @@ Response:
 }}
 """
 
+DATA_STORY_PROMPT = """
+You are an expert Business Analyst writing an executive summary for a data dashboard.
+Your task is to generate a concise, insightful narrative that explains the key findings from the data.
+
+Dataset Context:
+{dataset_context}
+
+Available KPIs:
+{kpis_context}
+
+Available Charts:
+{charts_context}
+
+CRITICAL RULES:
+1. Write ONLY plain English prose, 1-3 short paragraphs maximum.
+2. DO NOT use bullet points, numbered lists, or markdown formatting.
+3. DO NOT include any code, JSON, or technical syntax.
+4. DO NOT invent or hallucinate any numbers not provided in the KPIs above.
+5. ONLY reference chart titles that appear in "Available Charts" above.
+6. Keep the tone professional, insightful, and business-friendly.
+7. Focus on trends, comparisons, and actionable patterns.
+8. If date/time trends exist, mention seasonal or temporal patterns.
+
+Your output must be a JSON object with a single "story" key:
+{{
+  "story": "Your narrative here..."
+}}
+
+Example output style (DO NOT COPY THIS, generate based on actual data):
+{{
+  "story": "This dataset reveals a strong seasonal trend, with sales peaking in Q4, driven primarily by the Technology category. While Furniture maintains steady performance throughout the year, its growth rate is noticeably slower. Regional analysis indicates that the West contributes the highest share of overall revenue, suggesting stronger market penetration in that region."
+}}
+"""
+

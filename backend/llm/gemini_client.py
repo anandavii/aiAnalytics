@@ -4,7 +4,7 @@ import asyncio
 from typing import Dict, Any, List
 from google import genai
 
-from .prompt_templates import DATA_CLEANING_PROMPT, ANALYTICS_PROMPT, ANALYTICS_INTENT_PROMPT, DASHBOARD_OVERVIEW_PROMPT, SMART_SUGGESTIONS_PROMPT, ANALYTICS_CHART_PROMPT
+from .prompt_templates import DATA_CLEANING_PROMPT, ANALYTICS_PROMPT, ANALYTICS_INTENT_PROMPT, DASHBOARD_OVERVIEW_PROMPT, SMART_SUGGESTIONS_PROMPT, ANALYTICS_CHART_PROMPT, DATA_STORY_PROMPT
 
 
 class GeminiClient:
@@ -88,6 +88,15 @@ class GeminiClient:
         prompt = ANALYTICS_CHART_PROMPT.format(
             schema_summary=json.dumps(schema_summary, indent=2),
             user_query=user_query
+        )
+        return await self._generate_with_retry(prompt)
+
+    async def get_data_story(self, story_context: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a narrative data story based on dashboard insights."""
+        prompt = DATA_STORY_PROMPT.format(
+            dataset_context=story_context.get("dataset_context", ""),
+            kpis_context=story_context.get("kpis_context", ""),
+            charts_context=story_context.get("charts_context", "")
         )
         return await self._generate_with_retry(prompt)
 

@@ -3,18 +3,21 @@
 import { useEffect, useRef, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import axios from "axios"
-import { Send, Loader2, Sparkles, Mic, Trash2 } from "lucide-react"
+import { Send, Loader2, Sparkles, Mic, Trash2, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Switch } from "@/components/ui/switch"
 import dynamic from 'next/dynamic'
 import { toast } from "sonner"
 import { useChatHistory } from "@/components/providers/chat-history-provider"
 import { useAddOns } from "@/components/providers/addons-context"
+import { useDataStory } from "@/components/providers/data-story-provider"
 import { ChatMessage, StructuredChart } from "@/lib/chat-storage"
 import { SuggestionChips } from "./chat-suggestions"
 import { ChatAddOnsMenu, ActiveAddonPills } from "./chat-addons-menu"
 import { ChatChartPreview } from "./chat-chart-preview"
+import { DataStoryCard } from "./data-story-card"
 import { DashboardTile } from "@/types/report"
 
 // Dynamically import Plot for Client Side Rendering
@@ -28,11 +31,15 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
     const [query, setQuery] = useState("")
     const { getMessages, setMessages, addMessage, clearMessages } = useChatHistory()
     const { activeAddons, resetAddons } = useAddOns()
+    const { getStory, setStory, clearStory, isEnabled, setEnabled } = useDataStory()
     const [messages, setLocalMessages] = useState<ChatMessage[]>([])
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null)
     const recognitionRef = useRef<any>(null)
     const [isListening, setIsListening] = useState(false)
     const [speechSupported, setSpeechSupported] = useState(false)
+    // Data Story Mode state
+    const [isGeneratingStory, setIsGeneratingStory] = useState(false)
+    const [currentStory, setCurrentStory] = useState<{ story: string, generated_at: string } | null>(null)
     // Track dictated text without duplicating previous content
     const dictationBaseRef = useRef<string>("")
     const interimRef = useRef<string>("")
@@ -49,7 +56,14 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
         setLocalMessages(stored)
         // Reset added tiles when switching datasets
         setAddedTileIds(new Set())
-    }, [fileId, getMessages])
+        // Load existing story if available
+        const existingStory = getStory(fileId)
+        if (existingStory) {
+            setCurrentStory(existingStory)
+        } else {
+            setCurrentStory(null)
+        }
+    }, [fileId, getMessages, getStory])
 
     useEffect(() => {
         if (typeof window === "undefined") return
@@ -339,11 +353,56 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
         }
     }
 
+    // Data Story Mode handlers
+    const generateDataStory = async () => {
+        setIsGeneratingStory(true)
+        try {
+            const res = await axios.post("/api/v1/data-story", { file_id: fileId })
+            const storyData = { story: res.data.story, generated_at: res.data.generated_at }
+            setCurrentStory(storyData)
+            setStory(fileId, storyData)
+            setEnabled(fileId, true)
+        } catch (error) {
+            console.error("Failed to generate data story:", error)
+            toast.error("Failed to generate data story")
+        } finally {
+            setIsGeneratingStory(false)
+        }
+    }
+
+    const handleDataStoryToggle = async (enabled: boolean) => {
+        setEnabled(fileId, enabled)
+        if (enabled && !currentStory) {
+            await generateDataStory()
+        }
+    }
+
+    const handleRegenerateStory = async () => {
+        await generateDataStory()
+    }
+
     return (
         <div className="flex flex-col h-[70vh] max-h-[720px] min-h-0 border rounded-3xl overflow-hidden bg-white/90 dark:bg-neutral-900 shadow-sm">
-            {/* Header with Clear Chat button */}
-            {messages.length > 0 && (
-                <div className="flex items-center justify-end px-4 py-2 border-b bg-neutral-50/80 dark:bg-neutral-800/50">
+            {/* Header with Data Story toggle and Clear Chat button */}
+            <div className="flex items-center justify-between px-4 py-2 border-b bg-neutral-50/80 dark:bg-neutral-800/50">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-violet-500" />
+                        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-300">Explain this data</span>
+                        <Switch
+                            checked={isEnabled(fileId) || isGeneratingStory}
+                            onCheckedChange={handleDataStoryToggle}
+                            disabled={isGeneratingStory}
+                        />
+                    </div>
+                    {isGeneratingStory && (
+                        <div className="flex items-center gap-1.5 text-sm text-violet-500">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Generating story...</span>
+                        </div>
+                    )}
+                </div>
+                {messages.length > 0 && (
                     <Button
                         variant="ghost"
                         size="sm"
@@ -353,12 +412,22 @@ export function ChatInterface({ fileId }: ChatInterfaceProps) {
                         <Trash2 className="w-4 h-4" />
                         Clear Chat
                     </Button>
-                </div>
-            )}
+                )}
+            </div>
             <div className="flex-1 min-h-0 px-4 py-6 overflow-hidden flex flex-col bg-gradient-to-b from-neutral-50/80 via-white to-white dark:from-neutral-900 dark:via-neutral-900 dark:to-neutral-900">
                 <ScrollArea className="flex-1 min-h-0">
                     <div className="max-w-3xl mx-auto w-full space-y-4 pb-4">
-                        {messages.length === 0 && (
+                        {/* Data Story Card */}
+                        {isEnabled(fileId) && currentStory && (
+                            <DataStoryCard
+                                fileId={fileId}
+                                story={currentStory.story}
+                                generatedAt={currentStory.generated_at}
+                                onRegenerate={handleRegenerateStory}
+                                isRegenerating={isGeneratingStory}
+                            />
+                        )}
+                        {messages.length === 0 && !isEnabled(fileId) && (
                             <div className="text-center text-neutral-600 dark:text-neutral-300 mt-12 min-h-[360px] flex flex-col items-center justify-center space-y-3">
                                 <Sparkles className="w-10 h-10 mx-auto text-violet-400 opacity-70" />
                                 <h3 className="text-2xl font-semibold">What can I help with?</h3>

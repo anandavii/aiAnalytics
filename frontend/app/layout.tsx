@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ChatHistoryProvider } from "@/components/providers/chat-history-provider";
 import { AddOnsProvider } from "@/components/providers/addons-context";
+import { DataStoryProvider } from "@/components/providers/data-story-provider";
 import { Toaster } from "@/components/ui/sonner"
 
 export default function RootLayout({
@@ -35,7 +36,9 @@ export default function RootLayout({
         <QueryProvider>
           <ChatHistoryProvider>
             <AddOnsProvider>
-              {children}
+              <DataStoryProvider>
+                {children}
+              </DataStoryProvider>
             </AddOnsProvider>
           </ChatHistoryProvider>
           <Toaster />

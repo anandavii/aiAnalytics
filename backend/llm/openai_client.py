@@ -2,7 +2,7 @@ import os
 import json
 from openai import AsyncOpenAI
 from typing import Dict, Any, List
-from .prompt_templates import DATA_CLEANING_PROMPT, ANALYTICS_PROMPT, ANALYTICS_INTENT_PROMPT, DASHBOARD_OVERVIEW_PROMPT, ANALYTICS_CHART_PROMPT
+from .prompt_templates import DATA_CLEANING_PROMPT, ANALYTICS_PROMPT, ANALYTICS_INTENT_PROMPT, DASHBOARD_OVERVIEW_PROMPT, ANALYTICS_CHART_PROMPT, DATA_STORY_PROMPT, SMART_SUGGESTIONS_PROMPT
 
 class OpenAIClient:
     def __init__(self):
@@ -49,6 +49,24 @@ class OpenAIClient:
         prompt = ANALYTICS_CHART_PROMPT.format(
             schema_summary=json.dumps(schema_summary, indent=2),
             user_query=user_query
+        )
+        return await self._generate(prompt)
+
+    async def get_chat_suggestions(self, schema_summary: Dict[str, Any], chat_context: List[Dict[str, str]] = None) -> Dict[str, Any]:
+        """Generate smart suggestions for the chat interface."""
+        context_str = json.dumps(chat_context, indent=2) if chat_context else "None"
+        prompt = SMART_SUGGESTIONS_PROMPT.format(
+            dataset_summary=json.dumps(schema_summary, indent=2),
+            chat_context=context_str
+        )
+        return await self._generate(prompt)
+
+    async def get_data_story(self, story_context: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a narrative data story based on dashboard insights."""
+        prompt = DATA_STORY_PROMPT.format(
+            dataset_context=story_context.get("dataset_context", ""),
+            kpis_context=story_context.get("kpis_context", ""),
+            charts_context=story_context.get("charts_context", "")
         )
         return await self._generate(prompt)
 

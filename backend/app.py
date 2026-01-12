@@ -5,6 +5,7 @@ from services.data_cleaning import DataCleaningService
 from services.analytics_engine import AnalyticsEngine
 from services.dashboard_service import DashboardService
 from services.report_service import ReportService
+from services.data_story_service import DataStoryService
 from llm.gemini_client import GeminiClient
 from llm.openai_client import OpenAIClient
 from schemas import DatasetMetadata, CleaningRequest, AnalyticsQuery, CleaningSuggestion, AnalyticsResponse, Report, DashboardTile, SuggestionRequest, SuggestionResponse, StructuredChart
@@ -333,6 +334,66 @@ async def get_dashboard_overview(file_id: str):
         traceback.print_exc()
         # Final safety net
         return dashboard_service.generate_fallback_dashboard(file_id)
+
+
+@app.post("/api/v1/data-story")
+async def generate_data_story(request: dict):
+    """
+    Generate an AI-powered narrative summary of the dashboard insights.
+    
+    Request body:
+        file_id: str - The dataset file ID
+        dashboard_data: dict (optional) - Pre-fetched dashboard data to use
+    
+    Returns:
+        story: str - The generated narrative
+        generated_at: str - ISO timestamp
+    """
+    file_id = request.get("file_id")
+    if not file_id:
+        raise HTTPException(400, "file_id is required")
+    
+    try:
+        # Get dashboard data if not provided
+        dashboard_data = request.get("dashboard_data")
+        
+        if not dashboard_data:
+            # Fetch fresh dashboard data
+            df = ingestion_service.load_dataset(file_id)
+            summary = cleaning_service.generate_summary(df)
+            
+            plan_response = await llm_client.get_dashboard_plan(summary)
+            if "error" not in plan_response:
+                dashboard_data = dashboard_service.generate_dashboard_data(file_id, plan_response)
+            else:
+                dashboard_data = dashboard_service.generate_fallback_dashboard(file_id)
+        
+        # Generate story using dedicated service
+        story_service = DataStoryService(llm_client)
+        result = await story_service.generate_story(file_id, dashboard_data)
+        
+        if "error" in result:
+            # Try fallback provider if available
+            if llm_provider == "gemini" and os.getenv("OPENAI_API_KEY"):
+                fallback_client = OpenAIClient()
+                fallback_story_service = DataStoryService(fallback_client)
+                result = await fallback_story_service.generate_story(file_id, dashboard_data)
+            elif llm_provider == "openai" and os.getenv("GEMINI_API_KEY"):
+                fallback_client = GeminiClient()
+                fallback_story_service = DataStoryService(fallback_client)
+                result = await fallback_story_service.generate_story(file_id, dashboard_data)
+        
+        if "error" in result:
+            raise HTTPException(500, result["error"])
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to generate data story: {str(e)}")
 
 
 @app.post("/api/v1/reports", response_model=Report)
