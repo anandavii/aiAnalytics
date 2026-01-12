@@ -325,6 +325,7 @@ CRITICAL RULES:
 7. Focus on trends, comparisons, and actionable patterns.
 8. If date/time trends exist, mention seasonal or temporal patterns.
 9. Avoid vague phrases like "significant impact" unless clearly supported by the KPIs or charts.
+10. Prefer concise sentences and avoid unnecessary adjectives.
 
 Your output must be a JSON object with a single "story" key:
 {{
