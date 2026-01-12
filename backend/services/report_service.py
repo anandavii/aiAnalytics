@@ -4,9 +4,7 @@ import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from schemas import Report, DashboardTile
-
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-REPORTS_FILE = os.path.join(DATA_DIR, "reports.json")
+from config import DATA_DIR, REPORTS_FILE
 
 class ReportService:
     def __init__(self):

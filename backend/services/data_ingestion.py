@@ -5,13 +5,7 @@ import pandas as pd
 from fastapi import UploadFile, HTTPException
 from typing import Dict, Any
 from schemas import DatasetMetadata
-
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./data/original")
-PROCESSED_DIR = os.getenv("PROCESSED_DIR", "./data/processed")
-
-# Ensure directories exist
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(PROCESSED_DIR, exist_ok=True)
+from config import UPLOAD_DIR, PROCESSED_DIR
 
 class DataIngestionService:
     def __init__(self):

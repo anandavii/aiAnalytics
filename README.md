@@ -108,7 +108,7 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp ../.env.example .env  # Add your API keys
+# Create .env and add your API keys
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```
 

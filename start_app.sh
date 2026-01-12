@@ -10,7 +10,6 @@ echo "========================================"
 if [ ! -f "backend/.env" ]; then
     echo "⚠️  WARNING: backend/.env file not found!"
     echo "   Please create it and add your GEMINI_API_KEY."
-    echo "   cp .env.example backend/.env"
     echo "========================================"
     sleep 2
 fi
