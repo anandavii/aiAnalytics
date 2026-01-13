@@ -17,11 +17,13 @@
 
 ## ✨ Features
 
-- � **AI-Powered Analytics** — Natural language chat interface for data exploration
+- 🤖 **AI-Powered Analytics** — Natural language chat interface for data exploration
 - 🧹 **Intelligent Data Cleaning** — AI-generated suggestions for data quality improvement
-- 📈 **Dynamic Visualizations** — Interactive charts with Plotly
-- 📑 **Custom Reports** — Build and export customizable dashboards
+- 📈 **Dynamic Visualizations** — Interactive charts with Plotly (bar, line, pie, scatter, etc.)
+- 📑 **Custom Reports** — Build and export customizable dashboards as PDF
 - 🔄 **Multi-LLM Support** — Choose between Google Gemini or OpenAI
+- 📊 **Data Overview** — Automatic statistics, data types, and quality metrics
+- 🌓 **Dark/Light Mode** — Seamless theme switching with next-themes
 
 ---
 
@@ -144,6 +146,20 @@ Configure the application via environment variables in `.env`:
 5. **Clean** data using intelligent suggestions
 6. **Visualize** with dynamic charts
 7. **Build** custom reports and export them
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| **UI Components** | Radix UI, Lucide Icons, Framer Motion |
+| **Data Visualization** | Plotly.js, React-Plotly |
+| **Backend** | FastAPI, Python 3.11+, Pydantic |
+| **AI/LLM** | Google Gemini API, OpenAI API |
+| **Data Processing** | Pandas, NumPy, OpenPyXL |
+| **Deployment** | Docker, Docker Compose |
 
 ---
 
