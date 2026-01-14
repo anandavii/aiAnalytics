@@ -22,6 +22,7 @@ import { ChatHistoryProvider } from "@/components/providers/chat-history-provide
 import { AddOnsProvider } from "@/components/providers/addons-context";
 import { DataStoryProvider } from "@/components/providers/data-story-provider";
 import { Toaster } from "@/components/ui/sonner"
+import AuthProvider from "@/components/auth/AuthProvider";
 
 export default function RootLayout({
   children,
@@ -34,13 +35,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
-          <ChatHistoryProvider>
-            <AddOnsProvider>
-              <DataStoryProvider>
-                {children}
-              </DataStoryProvider>
-            </AddOnsProvider>
-          </ChatHistoryProvider>
+          <AuthProvider>
+            <ChatHistoryProvider>
+              <AddOnsProvider>
+                <DataStoryProvider>
+                  {children}
+                </DataStoryProvider>
+              </AddOnsProvider>
+            </ChatHistoryProvider>
+          </AuthProvider>
           <Toaster />
         </QueryProvider>
       </body>

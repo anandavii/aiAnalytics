@@ -6,7 +6,7 @@ import { UploadCloud, File, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import axios from "axios"
+import axios from "@/lib/axios"
 import { toast } from "sonner"
 
 interface FileUploadProps {
@@ -48,8 +48,12 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
             onUploadComplete(response.data.file_id, response.data)
         } catch (error: any) {
             console.error("Upload error details:", error)
-            const msg = error.response?.data?.detail || "Upload failed. Ensure backend is running."
-            toast.error(msg)
+            if (error.response?.status === 401) {
+                toast.error("Authentication failed. Please sign in again.")
+            } else {
+                const msg = error.response?.data?.detail || "Upload failed. Ensure backend is running."
+                toast.error(msg)
+            }
             setProgress(0)
         } finally {
             setUploading(false)
@@ -74,20 +78,20 @@ export function FileUpload({ onUploadComplete }: FileUploadProps) {
     return (
         <Card
             className={`p-8 border-2 transition-all duration-300 cursor-pointer ${isDragActive
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-lg shadow-blue-500/20"
-                    : "border-dashed border-neutral-300 dark:border-neutral-700 hover:border-blue-400 hover:shadow-md bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900/50 dark:to-neutral-900/30"
+                ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-lg shadow-blue-500/20"
+                : "border-dashed border-neutral-300 dark:border-neutral-700 hover:border-blue-400 hover:shadow-md bg-gradient-to-b from-neutral-50 to-white dark:from-neutral-900/50 dark:to-neutral-900/30"
                 }`}
             {...getRootProps()}
         >
             <input {...getInputProps()} />
             <div className="flex flex-col items-center gap-4 text-center">
                 <div className={`p-5 rounded-full transition-all duration-300 ${isDragActive
-                        ? "bg-blue-200 dark:bg-blue-800/50 scale-110"
-                        : "bg-blue-100 dark:bg-blue-900/30"
+                    ? "bg-blue-200 dark:bg-blue-800/50 scale-110"
+                    : "bg-blue-100 dark:bg-blue-900/30"
                     }`}>
                     <UploadCloud className={`w-12 h-12 transition-colors duration-300 ${isDragActive
-                            ? "text-blue-600 dark:text-blue-300"
-                            : "text-blue-600 dark:text-blue-400"
+                        ? "text-blue-600 dark:text-blue-300"
+                        : "text-blue-600 dark:text-blue-400"
                         }`} />
                 </div>
                 <div className="space-y-2">

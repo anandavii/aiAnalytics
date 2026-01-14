@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import axios from "axios"
+import axios from "@/lib/axios"
 import { Send, Loader2, Sparkles, Mic, Trash2, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

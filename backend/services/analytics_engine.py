@@ -7,13 +7,13 @@ class AnalyticsEngine:
     def __init__(self):
         self.ingestion = DataIngestionService()
 
-    def execute_plan(self, file_id: str, plan: Dict[str, Any]) -> Dict[str, Any]:
+    def execute_plan(self, file_id: str, plan: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """
         Executes a safe Analytics DSL plan on the dataset.
         NO dynamic code execution (exec/eval) is permitted.
         """
         try:
-            df = self.ingestion.load_dataset(file_id)
+            df = self.ingestion.load_dataset(file_id, user_id)
             initial_count = len(df)
             
             # 1. Apply Filters

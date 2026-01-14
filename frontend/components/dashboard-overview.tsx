@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import axios from "axios"
+import axios from "@/lib/axios"
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"

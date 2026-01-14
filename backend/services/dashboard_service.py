@@ -8,7 +8,7 @@ class DashboardService:
         self.analytics = AnalyticsEngine()
         self.ingestion = DataIngestionService()
 
-    def generate_dashboard_data(self, file_id: str, dashboard_plan: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_dashboard_data(self, file_id: str, dashboard_plan: Dict[str, Any], user_id: str) -> Dict[str, Any]:
         """
         Executes the dashboard plan against the dataset using AnalyticsEngine.
         """
@@ -27,7 +27,7 @@ class DashboardService:
             
             # 1. KPIs
             for item in dashboard.get("kpis", []):
-                val = self._resolve_metric(file_id, item.get("metric"), item.get("title"))
+                val = self._resolve_metric(file_id, item.get("metric"), item.get("title"), user_id)
                 output["kpis"].append({
                     "title": item.get("title"),
                     "value": val,
@@ -35,14 +35,14 @@ class DashboardService:
                 })
                 
             # 2. Trends
-            output["trends"] = self._resolve_charts(file_id, dashboard.get("trends", []), "trends")
+            output["trends"] = self._resolve_charts(file_id, dashboard.get("trends", []), "trends", user_id)
             
             # 3. Distributions
-            output["distributions"] = self._resolve_charts(file_id, dashboard.get("distributions", []), "distributions")
+            output["distributions"] = self._resolve_charts(file_id, dashboard.get("distributions", []), "distributions", user_id)
             
             # 4. Data Health
             if dashboard.get("data_health", {}).get("include"):
-                output["data_health"] = self._get_data_health(file_id)
+                output["data_health"] = self._get_data_health(file_id, user_id)
                 
             return output
             
@@ -50,7 +50,7 @@ class DashboardService:
             print(f"Dashboard Generation Error: {traceback.format_exc()}")
             return {"error": str(e)}
 
-    def _resolve_metric(self, file_id: str, metric: Dict, title: str) -> Any:
+    def _resolve_metric(self, file_id: str, metric: Dict, title: str, user_id: str) -> Any:
         if not metric: return "N/A"
         
         # Handle ROW_COUNT special case
@@ -61,7 +61,7 @@ class DashboardService:
                 "group_by": []
             }
             # Analytics engine metadata query returns row_count
-            res = self.analytics.execute_plan(file_id, plan)
+            res = self.analytics.execute_plan(file_id, plan, user_id)
             return res.get("result", {}).get("row_count", 0)
 
         # Construct a mini-plan for AnalyticsEngine
@@ -74,7 +74,7 @@ class DashboardService:
         }
         
         try:
-            result = self.analytics.execute_plan(file_id, plan)
+            result = self.analytics.execute_plan(file_id, plan, user_id)
             if "error" in result:
                 return "Error"
             
@@ -89,7 +89,7 @@ class DashboardService:
         except Exception:
              return "Error"
 
-    def _resolve_charts(self, file_id: str, items: List[Dict], section: str) -> List[Dict]:
+    def _resolve_charts(self, file_id: str, items: List[Dict], section: str, user_id: str) -> List[Dict]:
         resolved = []
         for item in items:
             chart_type = item.get("chart_type")
@@ -133,7 +133,7 @@ class DashboardService:
                  plan["sort"] = {"column": sort_col, "order": "desc"}
             
             try:
-                res = self.analytics.execute_plan(file_id, plan)
+                res = self.analytics.execute_plan(file_id, plan, user_id)
                 if "error" in res:
                     continue
                     
@@ -158,8 +158,8 @@ class DashboardService:
                 
         return resolved
 
-    def _get_data_health(self, file_id: str) -> Dict[str, Any]:
-        df = self.ingestion.load_dataset(file_id)
+    def _get_data_health(self, file_id: str, user_id: str) -> Dict[str, Any]:
+        df = self.ingestion.load_dataset(file_id, user_id)
         
         # Null analysis
         null_counts = df.isnull().sum()
@@ -184,13 +184,13 @@ class DashboardService:
              "null_analysis_top_5": null_analysis[:5]
         }
 
-    def generate_fallback_dashboard(self, file_id: str) -> Dict[str, Any]:
+    def generate_fallback_dashboard(self, file_id: str, user_id: str) -> Dict[str, Any]:
         """
         Generates a basic dashboard when LLM is unavailable (e.g. rate limits).
         """
         try:
-            df = self.ingestion.load_dataset(file_id)
-            health = self._get_data_health(file_id)
+            df = self.ingestion.load_dataset(file_id, user_id)
+            health = self._get_data_health(file_id, user_id)
             
             # Basic KPIs
             kpis = [

@@ -11,20 +11,44 @@ from llm.openai_client import OpenAIClient
 from llm.openrouter_client import OpenRouterClient
 from schemas import DatasetMetadata, CleaningRequest, AnalyticsQuery, CleaningSuggestion, AnalyticsResponse, Report, DashboardTile, SuggestionRequest, SuggestionResponse, StructuredChart
 from dotenv import load_dotenv
+from dotenv import load_dotenv
 import os
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, Security
+from auth.supabase_auth import verify_supabase_jwt
 
 load_dotenv()
 
 app = FastAPI(title="AI Data Analytics Dashboard API", version="1.0")
 
 # ... CORS ...
+# ... CORS ...
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[frontend_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth Security Scheme
+security = HTTPBearer()
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+    token = credentials.credentials
+    print(f"[AUTH] Received token: {token[:20]}..." if len(token) > 20 else f"[AUTH] Received token: {token}")
+    try:
+        payload = verify_supabase_jwt(token)
+        print(f"[AUTH] Validated user: {payload.get('sub')}")
+        return payload
+    except Exception as e:
+        print(f"[AUTH] Validation failed: {e}")
+        raise HTTPException(
+            status_code=401,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 # Services
 ingestion_service = DataIngestionService()
@@ -74,15 +98,16 @@ def health_check():
     return {"status": "ok", "version": "1.0"}
 
 @app.post("/api/v1/upload", response_model=DatasetMetadata)
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
         print(f"Received upload: {file.filename}")
         if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
             raise HTTPException(400, "Invalid file format")
         
-        file_id, _ = await ingestion_service.save_upload(file)
+        file_id, _ = await ingestion_service.save_upload(file, user_id)
         print(f"File saved: {file_id}")
-        return ingestion_service.get_metadata(file_id)
+        return ingestion_service.get_metadata(file_id, user_id)
     except Exception as e:
         print(f"UPLOAD ERROR: {e}")
         import traceback
@@ -90,18 +115,20 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(500, str(e))
 
 @app.get("/api/v1/files/{file_id}", response_model=DatasetMetadata)
-def get_file_metadata(file_id: str, preview_rows: int = 5):
+def get_file_metadata(file_id: str, preview_rows: int = 5, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
-        return ingestion_service.get_metadata(file_id, preview_rows=preview_rows)
+        return ingestion_service.get_metadata(file_id, user_id, preview_rows=preview_rows)
     except FileNotFoundError:
         raise HTTPException(404, "File not found")
 
 @app.post("/api/v1/clean/suggest")
-async def suggest_cleaning(file_id_wrapper: dict): 
+async def suggest_cleaning(file_id_wrapper: dict, current_user: dict = Depends(get_current_user)): 
     # Wrap int simple dict for body: {"file_id": "..."}
     file_id = file_id_wrapper.get("file_id")
+    user_id = current_user["sub"]
     try:
-        df = ingestion_service.load_dataset(file_id)
+        df = ingestion_service.load_dataset(file_id, user_id)
         summary = cleaning_service.generate_summary(df)
         llm_error = None
 
@@ -135,18 +162,20 @@ async def suggest_cleaning(file_id_wrapper: dict):
         raise HTTPException(500, str(e))
 
 @app.post("/api/v1/clean/apply")
-def apply_cleaning(request: CleaningRequest):
+def apply_cleaning(request: CleaningRequest, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
-        new_file_id = cleaning_service.apply_cleaning(request.file_id, request.selected_suggestions)
+        new_file_id = cleaning_service.apply_cleaning(request.file_id, request.selected_suggestions, user_id)
         return {"new_file_id": new_file_id}
     except Exception as e:
         raise HTTPException(500, str(e))
 
 @app.post("/api/v1/suggestions", response_model=SuggestionResponse)
-async def get_suggestions(request: SuggestionRequest):
+async def get_suggestions(request: SuggestionRequest, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
         # 1. Get Schema/Summary
-        df = ingestion_service.load_dataset(request.file_id)
+        df = ingestion_service.load_dataset(request.file_id, user_id)
         schema_summary = cleaning_service.generate_summary(df)
 
         # 2. Get LLM Suggestions
@@ -182,10 +211,11 @@ async def get_suggestions(request: SuggestionRequest):
         ])
 
 @app.post("/api/v1/chat/query", response_model=AnalyticsResponse)
-async def analytics_chat(query: AnalyticsQuery):
+async def analytics_chat(query: AnalyticsQuery, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
         # 1. Get Schema
-        df = ingestion_service.load_dataset(query.file_id)
+        df = ingestion_service.load_dataset(query.file_id, user_id)
         schema_summary = cleaning_service.generate_summary(df) # Reuse summary logic
         
         # NEW: Check for charts addon - use dedicated chart prompt path
@@ -264,7 +294,7 @@ async def analytics_chat(query: AnalyticsQuery):
         chart_type = chart_config.get("type") if chart_config else None
         
         # 3. Execute Plan (Safe DSL Execution)
-        execution_result = analytics_engine.execute_plan(query.file_id, plan)
+        execution_result = analytics_engine.execute_plan(query.file_id, plan, user_id)
         
         if "error" in execution_result:
              return AnalyticsResponse(
@@ -315,9 +345,10 @@ async def analytics_chat(query: AnalyticsQuery):
         raise HTTPException(500, str(e))
 
 @app.get("/api/v1/dashboard/overview")
-async def get_dashboard_overview(file_id: str):
+async def get_dashboard_overview(file_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     try:
-        df = ingestion_service.load_dataset(file_id)
+        df = ingestion_service.load_dataset(file_id, user_id)
         summary = cleaning_service.generate_summary(df)
         
         # LLM Plan
@@ -327,22 +358,22 @@ async def get_dashboard_overview(file_id: str):
         if "error" in plan_response:
              print(f"Dashboard Plan Error: {plan_response['error']}")
              print("Falling back to basic dashboard generation...")
-             return dashboard_service.generate_fallback_dashboard(file_id)
+             return dashboard_service.generate_fallback_dashboard(file_id, user_id)
              
         # Generate Data
         print("Executing dashboard plan...")
-        dashboard_data = dashboard_service.generate_dashboard_data(file_id, plan_response)
+        dashboard_data = dashboard_service.generate_dashboard_data(file_id, plan_response, user_id)
         
         return dashboard_data
     except Exception as e:
         print(f"Dashboard Critical Error: {e}")
         traceback.print_exc()
         # Final safety net
-        return dashboard_service.generate_fallback_dashboard(file_id)
+        return dashboard_service.generate_fallback_dashboard(file_id, user_id)
 
 
 @app.post("/api/v1/data-story")
-async def generate_data_story(request: dict):
+async def generate_data_story(request: dict, current_user: dict = Depends(get_current_user)):
     """
     Generate an AI-powered narrative summary of the dashboard insights.
     
@@ -361,32 +392,33 @@ async def generate_data_story(request: dict):
     try:
         # Get dashboard data if not provided
         dashboard_data = request.get("dashboard_data")
+        user_id = current_user["sub"]
         
         if not dashboard_data:
             # Fetch fresh dashboard data
-            df = ingestion_service.load_dataset(file_id)
+            df = ingestion_service.load_dataset(file_id, user_id)
             summary = cleaning_service.generate_summary(df)
             
             plan_response = await llm_client.get_dashboard_plan(summary)
             if "error" not in plan_response:
-                dashboard_data = dashboard_service.generate_dashboard_data(file_id, plan_response)
+                dashboard_data = dashboard_service.generate_dashboard_data(file_id, plan_response, user_id)
             else:
-                dashboard_data = dashboard_service.generate_fallback_dashboard(file_id)
+                dashboard_data = dashboard_service.generate_fallback_dashboard(file_id, user_id)
         
         # Generate story using dedicated service
         story_service = DataStoryService(llm_client)
-        result = await story_service.generate_story(file_id, dashboard_data)
+        result = await story_service.generate_story(file_id, user_id, dashboard_data)
         
         if "error" in result:
             # Try fallback provider if available
             if llm_provider == "gemini" and os.getenv("OPENAI_API_KEY"):
                 fallback_client = OpenAIClient()
                 fallback_story_service = DataStoryService(fallback_client)
-                result = await fallback_story_service.generate_story(file_id, dashboard_data)
+                result = await fallback_story_service.generate_story(file_id, user_id, dashboard_data)
             elif llm_provider == "openai" and os.getenv("GEMINI_API_KEY"):
                 fallback_client = GeminiClient()
                 fallback_story_service = DataStoryService(fallback_client)
-                result = await fallback_story_service.generate_story(file_id, dashboard_data)
+                result = await fallback_story_service.generate_story(file_id, user_id, dashboard_data)
         
         if "error" in result:
             raise HTTPException(500, result["error"])
@@ -402,49 +434,56 @@ async def generate_data_story(request: dict):
 
 
 @app.post("/api/v1/reports", response_model=Report)
-def create_report(request: dict):
+def create_report(request: dict, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     title = request.get("title", "New Report")
     file_id = request.get("file_id")
     if not file_id:
         raise HTTPException(400, "file_id is required")
-    return report_service.create_report(title, file_id)
+    return report_service.create_report(title, file_id, user_id)
 
 @app.get("/api/v1/reports", response_model=list[Report])
-def list_reports(file_id: str):
-    return report_service.list_reports(file_id)
+def list_reports(file_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
+    return report_service.list_reports(file_id, user_id)
 
 @app.get("/api/v1/reports/{report_id}", response_model=Report)
-def get_report(report_id: str):
-    report = report_service.get_report(report_id)
+def get_report(report_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
+    report = report_service.get_report(report_id, user_id)
     if not report:
         raise HTTPException(404, "Report not found")
     return report
 
 @app.delete("/api/v1/reports/{report_id}")
-def delete_report(report_id: str):
-    success = report_service.delete_report(report_id)
+def delete_report(report_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
+    success = report_service.delete_report(report_id, user_id)
     if not success:
         raise HTTPException(404, "Report not found")
     return {"status": "success"}
 
 @app.post("/api/v1/reports/{report_id}/tiles", response_model=Report)
-def add_tile_to_report(report_id: str, tile: DashboardTile):
+def add_tile_to_report(report_id: str, tile: DashboardTile, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
     # Pass model_dump to service
-    updated_report = report_service.add_tile(report_id, tile.model_dump())
+    updated_report = report_service.add_tile(report_id, tile.model_dump(), user_id)
     if not updated_report:
         raise HTTPException(404, "Report not found")
     return updated_report
 
 @app.delete("/api/v1/reports/{report_id}/tiles/{tile_id}", response_model=Report)
-def remove_tile_from_report(report_id: str, tile_id: str):
-    updated_report = report_service.remove_tile(report_id, tile_id)
+def remove_tile_from_report(report_id: str, tile_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
+    updated_report = report_service.remove_tile(report_id, tile_id, user_id)
     if not updated_report:
         raise HTTPException(404, "Report not found")
     return updated_report
 
 @app.put("/api/v1/reports/{report_id}", response_model=Report)
-def update_report(report_id: str, updates: dict):
-    updated_report = report_service.update_report(report_id, updates)
+def update_report(report_id: str, updates: dict, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["sub"]
+    updated_report = report_service.update_report(report_id, updates, user_id)
     if not updated_report:
         raise HTTPException(404, "Report not found")
     return updated_report

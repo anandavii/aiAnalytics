@@ -11,30 +11,37 @@ class DataIngestionService:
     def __init__(self):
         pass
 
-    async def save_upload(self, file: UploadFile) -> str:
+    async def save_upload(self, file: UploadFile, user_id: str) -> str:
         """Saves uploaded file and returns a unique file_id."""
         file_id = str(uuid.uuid4())
         extension = os.path.splitext(file.filename)[1]
-        file_path = os.path.join(UPLOAD_DIR, f"{file_id}{extension}")
+        
+        # User Scoped Directory
+        user_upload_dir = os.path.join(UPLOAD_DIR, user_id)
+        os.makedirs(user_upload_dir, exist_ok=True)
+        
+        file_path = os.path.join(user_upload_dir, f"{file_id}{extension}")
         
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
         return file_id, file_path
 
-    def load_dataset(self, file_id: str) -> pd.DataFrame:
+    def load_dataset(self, file_id: str, user_id: str) -> pd.DataFrame:
         """Loads dataset from disk (checks processed first, then original)."""
-        # Simple lookup logic
-        # Try finding in processed (needs extension)
-        # For V1, we simply iterate or assume extension. 
-        # To keep it simple, we search for the file with the ID.
         
-        for dir_path in [PROCESSED_DIR, UPLOAD_DIR]:
+        # Search in user specific directories
+        user_processed_dir = os.path.join(PROCESSED_DIR, user_id)
+        user_upload_dir = os.path.join(UPLOAD_DIR, user_id)
+        
+        for dir_path in [user_processed_dir, user_upload_dir]:
+            if not os.path.exists(dir_path):
+                continue
+                
             for filename in os.listdir(dir_path):
                 if filename.startswith(file_id):
                     path = os.path.join(dir_path, filename)
                     if filename.endswith('.csv'):
-                        # Robust CSV reading with encoding fallback
                         try:
                             return pd.read_csv(path, encoding='utf-8')
                         except UnicodeDecodeError:
@@ -45,17 +52,12 @@ class DataIngestionService:
                     elif filename.endswith(('.xlsx', '.xls')):
                         return pd.read_excel(path)
         
-        raise FileNotFoundError(f"File ID {file_id} not found.")
+        raise FileNotFoundError(f"File ID {file_id} not found for user.")
 
-    def get_metadata(self, file_id: str, preview_rows: int = 5) -> DatasetMetadata:
-        df = self.load_dataset(file_id)
-        preview_rows = max(1, min(int(preview_rows or 5), 100))  # clamp to 1-100 rows for safety
+    def get_metadata(self, file_id: str, user_id: str, preview_rows: int = 5) -> DatasetMetadata:
+        df = self.load_dataset(file_id, user_id)
+        preview_rows = max(1, min(int(preview_rows or 5), 100))
         
-        # Determine original filename if possible (mocked for now or stored in DB)
-        # MVP: just return file_id as filename
-        
-        # Handle Inf/Nan for JSON serialization (Replace with None, which maps to null)
-        # Using specific replacement to avoid future warnings
         import numpy as np
         preview_df = df.head(preview_rows).copy()
         preview_df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -65,7 +67,7 @@ class DataIngestionService:
         
         return DatasetMetadata(
             file_id=file_id,
-            filename=file_id, # In a real app, we'd look up the original name
+            filename=file_id, 
             rows=len(df),
             columns=len(df.columns),
             column_names=df.columns.tolist(),

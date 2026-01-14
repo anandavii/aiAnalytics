@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
-import axios from "axios"
+import axios from "@/lib/axios"
 import { Check, Loader2, Sparkles, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"

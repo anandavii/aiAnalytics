@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import axios from "axios"
+import axios from "@/lib/axios"
 import { FileUpload } from "@/components/file-upload"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,6 +15,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { DashboardOverview } from "@/components/dashboard-overview"
 import { ProcessingState } from "@/components/processing-state"
 import { Button } from "@/components/ui/button"
+import { AppHeader } from "@/components/AppHeader"
 
 export default function DashboardPage() {
     const [fileId, setFileId] = useState<string | null>(null)
@@ -75,144 +76,151 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="container mx-auto py-10 px-4 space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" asChild>
-                            <Link href="/">← Home</Link>
-                        </Button>
-                        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="relative overflow-hidden min-h-screen bg-surface text-slate-900">
+            {/* Background effects matching landing page */}
+            <div className="hero-aurora" />
+            <div className="hero-orb hero-orb-1" />
+            <div className="hero-orb hero-orb-2" />
+            <div className="hero-orb hero-orb-3" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,144,255,0.18),transparent_25%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.2),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(94,234,212,0.16),transparent_28%)]" />
+
+            <div className="relative z-10">
+                <AppHeader />
+                <div className="container mx-auto py-10 px-4 space-y-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex flex-col gap-3">
+                            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                            <p className="text-neutral-500">Manage your data and generate insights.</p>
+                        </div>
+                        <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
+                            {metadata && (
+                                <div className="flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="text-sm py-1">
+                                        {metadata.filename}
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-sm py-1">
+                                        {metadata.rows} Rows
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-sm py-1">
+                                        {metadata.columns} Columns
+                                    </Badge>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <p className="text-neutral-500">Manage your data and generate insights.</p>
-                </div>
-                <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
-                    {metadata && (
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="text-sm py-1">
-                                {metadata.filename}
-                            </Badge>
-                            <Badge variant="secondary" className="text-sm py-1">
-                                {metadata.rows} Rows
-                            </Badge>
-                            <Badge variant="secondary" className="text-sm py-1">
-                                {metadata.columns} Columns
-                            </Badge>
+
+                    {!fileId ? (
+                        <div className="max-w-xl mx-auto mt-20">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Upload Dataset</CardTitle>
+                                    <CardDescription>
+                                        Start by uploading your CSV or Excel file.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <FileUpload onUploadComplete={handleUploadComplete} />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : isProcessing ? (
+                        <ProcessingState message="Processing your dataset" />
+                    ) : (
+                        <div className="flex-col space-y-4 animate-fade-in-up">
+                            <Tabs defaultValue="overview" className="space-y-4">
+                                <TabsList>
+                                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                                    <TabsTrigger value="preview">Data Preview</TabsTrigger>
+                                    <TabsTrigger value="clean">AI Cleaning</TabsTrigger>
+                                    <TabsTrigger value="chat">Analytics Chat</TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="overview" className="space-y-4">
+                                    <DashboardOverview fileId={fileId} />
+                                </TabsContent>
+
+                                <TabsContent value="preview" className="space-y-4">
+                                    <Card>
+                                        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <CardTitle>Data Preview</CardTitle>
+                                                <CardDescription>Preview the first rows of your dataset.</CardDescription>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm text-neutral-600 dark:text-neutral-300">Rows:</label>
+                                                <select
+                                                    className="rounded-md border px-2 py-1 text-sm bg-white dark:bg-neutral-900"
+                                                    value={previewRows}
+                                                    onChange={(e) => setPreviewRows(Number(e.target.value))}
+                                                >
+                                                    {[10, 25, 50, 100].map((n) => (
+                                                        <option key={n} value={n}>{n}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="h-[400px] w-full overflow-auto rounded-md border">
+                                                <Table className="min-w-max">
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            {metadata?.column_names && metadata.column_names.map((col: string) => (
+                                                                <TableHead
+                                                                    key={col}
+                                                                    onClick={() => handleSort(col)}
+                                                                    className="cursor-pointer select-none"
+                                                                >
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span>{col}</span>
+                                                                        {sortKey === col && (
+                                                                            <span className="text-xs text-neutral-500">{sortDir === "asc" ? "↑" : "↓"}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </TableHead>
+                                                            ))}
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {sortedPreview?.map((row: any, i: number) => (
+                                                            <TableRow key={i}>
+                                                                {metadata?.column_names && metadata.column_names.map((col: string) => (
+                                                                    <TableCell key={col} className="whitespace-nowrap">{row[col]}</TableCell>
+                                                                ))}
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="clean">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>Data Cleaning</CardTitle>
+                                            <CardDescription>Review and apply AI suggestions.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {fileId && (
+                                                <DataCleaning fileId={fileId} onCleanComplete={(newFileId) => {
+                                                    alert("Cleaning Applied! Reloading data...")
+                                                    setFileId(newFileId)
+                                                    // Ideally refetch metadata too
+                                                }} />
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
+
+                                <TabsContent value="chat">
+                                    {fileId && <ChatInterface fileId={fileId} />}
+                                </TabsContent>
+                            </Tabs>
                         </div>
                     )}
                 </div>
             </div>
-
-            {!fileId ? (
-                <div className="max-w-xl mx-auto mt-20">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Upload Dataset</CardTitle>
-                            <CardDescription>
-                                Start by uploading your CSV or Excel file.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <FileUpload onUploadComplete={handleUploadComplete} />
-                        </CardContent>
-                    </Card>
-                </div>
-            ) : isProcessing ? (
-                <ProcessingState message="Processing your dataset" />
-            ) : (
-                <div className="flex-col space-y-4 animate-fade-in-up">
-                    <Tabs defaultValue="overview" className="space-y-4">
-                        <TabsList>
-                            <TabsTrigger value="overview">Overview</TabsTrigger>
-                            <TabsTrigger value="preview">Data Preview</TabsTrigger>
-                            <TabsTrigger value="clean">AI Cleaning</TabsTrigger>
-                            <TabsTrigger value="chat">Analytics Chat</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="overview" className="space-y-4">
-                            <DashboardOverview fileId={fileId} />
-                        </TabsContent>
-
-                        <TabsContent value="preview" className="space-y-4">
-                            <Card>
-                                <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                    <div>
-                                        <CardTitle>Data Preview</CardTitle>
-                                        <CardDescription>Preview the first rows of your dataset.</CardDescription>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <label className="text-sm text-neutral-600 dark:text-neutral-300">Rows:</label>
-                                        <select
-                                            className="rounded-md border px-2 py-1 text-sm bg-white dark:bg-neutral-900"
-                                            value={previewRows}
-                                            onChange={(e) => setPreviewRows(Number(e.target.value))}
-                                        >
-                                            {[10, 25, 50, 100].map((n) => (
-                                                <option key={n} value={n}>{n}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="h-[400px] w-full overflow-auto rounded-md border">
-                                        <Table className="min-w-max">
-                                            <TableHeader>
-                                                <TableRow>
-                                                    {metadata?.column_names && metadata.column_names.map((col: string) => (
-                                                        <TableHead
-                                                            key={col}
-                                                            onClick={() => handleSort(col)}
-                                                            className="cursor-pointer select-none"
-                                                        >
-                                                            <div className="flex items-center gap-1">
-                                                                <span>{col}</span>
-                                                                {sortKey === col && (
-                                                                    <span className="text-xs text-neutral-500">{sortDir === "asc" ? "↑" : "↓"}</span>
-                                                                )}
-                                                            </div>
-                                                        </TableHead>
-                                                    ))}
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {sortedPreview?.map((row: any, i: number) => (
-                                                    <TableRow key={i}>
-                                                        {metadata?.column_names && metadata.column_names.map((col: string) => (
-                                                            <TableCell key={col} className="whitespace-nowrap">{row[col]}</TableCell>
-                                                        ))}
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="clean">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Data Cleaning</CardTitle>
-                                    <CardDescription>Review and apply AI suggestions.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {fileId && (
-                                        <DataCleaning fileId={fileId} onCleanComplete={(newFileId) => {
-                                            alert("Cleaning Applied! Reloading data...")
-                                            setFileId(newFileId)
-                                            // Ideally refetch metadata too
-                                        }} />
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="chat">
-                            {fileId && <ChatInterface fileId={fileId} />}
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            )}
         </div>
     )
 }

@@ -70,9 +70,9 @@ class DataCleaningService:
 
         return suggestions
 
-    def apply_cleaning(self, file_id: str, suggestions: List[CleaningSuggestion]) -> str:
+    def apply_cleaning(self, file_id: str, suggestions: List[CleaningSuggestion], user_id: str) -> str:
         """Applies cleaning suggestions and saves a new version."""
-        df = self.ingestion.load_dataset(file_id)
+        df = self.ingestion.load_dataset(file_id, user_id)
         
         # Deep copy for safety
         df_clean = df.copy()
@@ -102,20 +102,18 @@ class DataCleaningService:
                     df_clean.drop_duplicates(inplace=True)
                 
                 elif sug.action == "RENAME_COLUMN":
-                    # Parse "old_name:new_name" if passed as value, or assume standard normalization
-                    # For MVP, assume sug.column is the old name and sug.value is the new name
                     if sug.column and sug.value:
                          df_clean.rename(columns={sug.column: sug.value}, inplace=True)
 
             except Exception as e:
                 print(f"Error applying suggestion {sug}: {e}")
 
-        # Save processed file
-        # Used original extension
-        # Find original extension
-        # Quick hack: assume CSV if not sure
+        # Save processed file to user directory
         new_filename = f"{file_id}_cleaned.csv"
-        save_path = os.path.join(PROCESSED_DIR, new_filename)
+        user_processed_dir = os.path.join(PROCESSED_DIR, user_id)
+        os.makedirs(user_processed_dir, exist_ok=True)
+        
+        save_path = os.path.join(user_processed_dir, new_filename)
         df_clean.to_csv(save_path, index=False)
         
-        return f"{file_id}_cleaned" # This is a bit hacky, normally we'd issue a NEW UUID
+        return f"{file_id}_cleaned"

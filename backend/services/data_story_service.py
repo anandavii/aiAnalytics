@@ -23,13 +23,14 @@ class DataStoryService:
     async def generate_story(
         self,
         file_id: str,
+        user_id: str,
         dashboard_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         try:
-            dataset_context = self._build_dataset_context(file_id)
+            dataset_context = self._build_dataset_context(file_id, user_id)
 
             if dashboard_data is None:
-                dashboard_data = self.dashboard.generate_fallback_dashboard(file_id)
+                dashboard_data = self.dashboard.generate_fallback_dashboard(file_id, user_id)
 
             kpis_context = self._build_kpis_context(dashboard_data.get("kpis", []))
             charts_context = self._build_charts_context(
@@ -63,9 +64,9 @@ class DataStoryService:
         except Exception as e:
             return {"error": f"Failed to generate data story: {str(e)}"}
 
-    def _build_dataset_context(self, file_id: str) -> str:
+    def _build_dataset_context(self, file_id: str, user_id: str) -> str:
         try:
-            df = self.ingestion.load_dataset(file_id)
+            df = self.ingestion.load_dataset(file_id, user_id)
 
             row_count = len(df)
             col_count = len(df.columns)
