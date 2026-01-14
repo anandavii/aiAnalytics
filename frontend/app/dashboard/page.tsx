@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import axios from "@/lib/axios"
 import { FileUpload } from "@/components/file-upload"
@@ -20,6 +21,10 @@ import { useActiveDataset } from "@/components/providers/active-dataset-provider
 import { toast } from "sonner"
 
 export default function DashboardPage() {
+    const searchParams = useSearchParams()
+    const tabParam = searchParams.get('tab')
+    const defaultTab = ['overview', 'preview', 'clean', 'chat'].includes(tabParam || '') ? tabParam! : 'overview'
+
     const { activeFileId, activeFileName, setActiveDataset, clearActiveDataset, hasActiveDataset } = useActiveDataset()
     const [metadata, setMetadata] = useState<any>(null)
     const [isProcessing, setIsProcessing] = useState(false)
@@ -142,7 +147,7 @@ export default function DashboardPage() {
                         <ProcessingState message="Processing your dataset" />
                     ) : (
                         <div className="flex-col space-y-4 animate-fade-in-up">
-                            <Tabs defaultValue="overview" className="space-y-4">
+                            <Tabs defaultValue={defaultTab} className="space-y-4">
                                 <TabsList>
                                     <TabsTrigger value="overview">Overview</TabsTrigger>
                                     <TabsTrigger value="preview">Data Preview</TabsTrigger>
