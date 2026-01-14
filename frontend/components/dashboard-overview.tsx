@@ -6,7 +6,7 @@ import axios from "@/lib/axios"
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, Download, FileJson, FileImage, FileText, Plus, Check } from "lucide-react"
+import { AlertCircle, Download, FileJson, ImageDown, FileDown, Plus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
@@ -220,7 +220,7 @@ export function DashboardOverview({ fileId }: DashboardOverviewProps) {
 
                     {activeTab === "dashboard" && (
                         <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg p-1 border border-border/30 shadow-sm">
-                            <span className="text-xs text-muted-foreground px-2 font-medium hidden sm:inline">Export:</span>
+                            <Download className="w-4 h-4 text-muted-foreground ml-2 hidden sm:block" />
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -228,7 +228,7 @@ export function DashboardOverview({ fileId }: DashboardOverviewProps) {
                                 title="Export dashboard as PDF"
                                 className="h-7 px-2.5 hover:bg-background hover:shadow-sm transition-all"
                             >
-                                <FileText className="w-4 h-4 mr-1.5" /> PDF
+                                <FileDown className="w-4 h-4 mr-1.5" /> PDF
                             </Button>
                             <Button
                                 variant="ghost"
@@ -237,7 +237,7 @@ export function DashboardOverview({ fileId }: DashboardOverviewProps) {
                                 title="Export dashboard as PNG image"
                                 className="h-7 px-2.5 hover:bg-background hover:shadow-sm transition-all"
                             >
-                                <FileImage className="w-4 h-4 mr-1.5" /> PNG
+                                <ImageDown className="w-4 h-4 mr-1.5" /> PNG
                             </Button>
                             <Button
                                 variant="ghost"

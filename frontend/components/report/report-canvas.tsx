@@ -81,7 +81,8 @@ export const ReportCanvas: React.FC<ReportCanvasProps> = ({
                     className="text-2xl font-bold bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-2"
                     placeholder="Report Title..."
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <Download className="w-4 h-4 text-muted-foreground" />
                     <Button variant="outline" size="sm" onClick={handleExportPDF}>
                         <FileText className="w-4 h-4 mr-2" /> PDF
                     </Button>
