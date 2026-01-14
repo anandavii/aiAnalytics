@@ -71,8 +71,8 @@ export default function Home() {
       <div className="hero-orb hero-orb-3" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,144,255,0.18),transparent_25%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.2),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(94,234,212,0.16),transparent_28%)]" />
 
-      {/* Unified Navbar */}
-      <Navbar variant="marketing" />
+      {/* Unified Navbar - hide Dashboard link when logged in, hide Sign In when logged out */}
+      <Navbar variant="marketing" hideDashboardLink={!!user} hideNavContent={!user} />
 
       {/* Content - different for logged-in vs logged-out */}
       {loading ? (
@@ -180,17 +180,8 @@ export default function Home() {
                     <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full px-7 py-3 text-base bg-white/70 backdrop-blur-sm text-slate-700 border-2 border-slate-300 hover:border-indigo-400 hover:text-indigo-600 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition-all duration-200"
-                  asChild
-                >
-                  <Link href="/auth/sign-up">
-                    Create account
-                  </Link>
-                </Button>
               </div>
+
 
               <div className="flex flex-wrap gap-3">
                 {highlights.map((item) => (
