@@ -21,6 +21,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { ChatHistoryProvider } from "@/components/providers/chat-history-provider";
 import { AddOnsProvider } from "@/components/providers/addons-context";
 import { DataStoryProvider } from "@/components/providers/data-story-provider";
+import { ActiveDatasetProvider } from "@/components/providers/active-dataset-provider";
 import { Toaster } from "@/components/ui/sonner"
 import AuthProvider from "@/components/auth/AuthProvider";
 
@@ -36,13 +37,15 @@ export default function RootLayout({
       >
         <QueryProvider>
           <AuthProvider>
-            <ChatHistoryProvider>
-              <AddOnsProvider>
-                <DataStoryProvider>
-                  {children}
-                </DataStoryProvider>
-              </AddOnsProvider>
-            </ChatHistoryProvider>
+            <ActiveDatasetProvider>
+              <ChatHistoryProvider>
+                <AddOnsProvider>
+                  <DataStoryProvider>
+                    {children}
+                  </DataStoryProvider>
+                </AddOnsProvider>
+              </ChatHistoryProvider>
+            </ActiveDatasetProvider>
           </AuthProvider>
           <Toaster />
         </QueryProvider>

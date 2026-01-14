@@ -5,6 +5,7 @@ import { Session, User } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/axios'
+import { clearActiveDatasetStorage } from '@/components/providers/active-dataset-provider'
 
 type AuthContextType = {
     user: User | null
@@ -62,6 +63,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     }, [router, supabase])
 
     const signOut = async () => {
+        clearActiveDatasetStorage()
         await supabase.auth.signOut()
         router.push('/')
     }

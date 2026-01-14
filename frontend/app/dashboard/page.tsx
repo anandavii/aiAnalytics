@@ -15,39 +15,54 @@ import { ChatInterface } from "@/components/chat-interface"
 import { DashboardOverview } from "@/components/dashboard-overview"
 import { ProcessingState } from "@/components/processing-state"
 import { Button } from "@/components/ui/button"
-import { AppHeader } from "@/components/AppHeader"
+import { Navbar } from "@/components/Navbar"
+import { useActiveDataset } from "@/components/providers/active-dataset-provider"
+import { toast } from "sonner"
 
 export default function DashboardPage() {
-    const [fileId, setFileId] = useState<string | null>(null)
+    const { activeFileId, activeFileName, setActiveDataset, clearActiveDataset, hasActiveDataset } = useActiveDataset()
     const [metadata, setMetadata] = useState<any>(null)
     const [isProcessing, setIsProcessing] = useState(false)
     const [previewRows, setPreviewRows] = useState<number>(10)
     const [sortKey, setSortKey] = useState<string | null>(null)
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+    const [loading, setLoading] = useState(true)
 
+    // Handle upload completion - set active dataset in context
     const handleUploadComplete = (fid: string, meta: any) => {
-        setFileId(fid)
+        console.log('[Dashboard] Upload complete, setting active dataset:', fid)
+        setActiveDataset(fid, meta.filename || 'Uploaded file')
         setMetadata(meta)
-        // Brief processing state to ensure dashboard has time to load
         setIsProcessing(true)
         setTimeout(() => setIsProcessing(false), 1500)
     }
 
-    // Refetch preview when row count changes
+    // Fetch file metadata on mount if activeFileId exists
     useEffect(() => {
-        const fetchPreview = async () => {
-            if (!fileId) return
+        const fetchFileMetadata = async () => {
+            if (!activeFileId) {
+                setLoading(false)
+                return
+            }
+            console.log('[Dashboard] Fetching metadata for active file:', activeFileId)
             try {
-                const res = await axios.get(`/api/v1/files/${fileId}`, {
+                const res = await axios.get(`/api/v1/files/${activeFileId}`, {
                     params: { preview_rows: previewRows }
                 })
                 setMetadata(res.data)
-            } catch (err) {
-                console.error("Failed to fetch preview", err)
+                console.log('[Dashboard] Loaded metadata for:', activeFileId)
+            } catch (err: any) {
+                console.error('[Dashboard] Failed to fetch file:', err)
+                if (err.response?.status === 404 || err.response?.status === 410) {
+                    toast.error('Dataset no longer exists. Please upload a new file.')
+                    clearActiveDataset()
+                }
+            } finally {
+                setLoading(false)
             }
         }
-        fetchPreview()
-    }, [fileId, previewRows])
+        fetchFileMetadata()
+    }, [activeFileId, previewRows, clearActiveDataset])
 
     const sortedPreview = useMemo(() => {
         if (!metadata?.preview || !sortKey) return metadata?.preview || []
@@ -85,8 +100,8 @@ export default function DashboardPage() {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,144,255,0.18),transparent_25%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.2),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(94,234,212,0.16),transparent_28%)]" />
 
             <div className="relative z-10">
-                <AppHeader />
-                <div className="container mx-auto py-10 px-4 space-y-8">
+                <Navbar variant="app" />
+                <div className="container mx-auto pt-24 pb-10 px-4 space-y-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex flex-col gap-3">
                             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -109,7 +124,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {!fileId ? (
+                    {!activeFileId ? (
                         <div className="max-w-xl mx-auto mt-20">
                             <Card>
                                 <CardHeader>
@@ -136,7 +151,7 @@ export default function DashboardPage() {
                                 </TabsList>
 
                                 <TabsContent value="overview" className="space-y-4">
-                                    <DashboardOverview fileId={fileId} />
+                                    <DashboardOverview fileId={activeFileId} />
                                 </TabsContent>
 
                                 <TabsContent value="preview" className="space-y-4">
@@ -202,11 +217,10 @@ export default function DashboardPage() {
                                             <CardDescription>Review and apply AI suggestions.</CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            {fileId && (
-                                                <DataCleaning fileId={fileId} onCleanComplete={(newFileId) => {
-                                                    alert("Cleaning Applied! Reloading data...")
-                                                    setFileId(newFileId)
-                                                    // Ideally refetch metadata too
+                                            {activeFileId && (
+                                                <DataCleaning fileId={activeFileId} onCleanComplete={(newFileId) => {
+                                                    toast.success("Cleaning Applied! Reloading data...")
+                                                    setActiveDataset(newFileId, activeFileName || 'Cleaned file')
                                                 }} />
                                             )}
                                         </CardContent>
@@ -214,7 +228,7 @@ export default function DashboardPage() {
                                 </TabsContent>
 
                                 <TabsContent value="chat">
-                                    {fileId && <ChatInterface fileId={fileId} />}
+                                    {activeFileId && <ChatInterface fileId={activeFileId} />}
                                 </TabsContent>
                             </Tabs>
                         </div>
