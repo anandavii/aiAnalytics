@@ -45,7 +45,7 @@ export function Navbar({ variant = 'marketing', hideNavContent = false, hideDash
                 <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-6">
                     <div className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-indigo-500" />
-                        <span className="font-semibold text-slate-800">AI Analytics</span>
+                        <span className="font-semibold text-slate-800">AI Analytico</span>
                     </div>
                     {!hideNavContent && (
                         <div className="h-8 w-24 animate-pulse rounded-full bg-slate-200" />
@@ -64,7 +64,7 @@ export function Navbar({ variant = 'marketing', hideNavContent = false, hideDash
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-2 text-slate-800 font-semibold">
                             <Sparkles className="h-5 w-5 text-indigo-500" />
-                            <span>AI Analytics</span>
+                            <span>AI Analytico</span>
                         </Link>
 
                         {/* Nav links - hidden when hideNavContent is true */}
@@ -114,7 +114,7 @@ export function Navbar({ variant = 'marketing', hideNavContent = false, hideDash
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2 text-slate-800 font-semibold">
                     <Sparkles className="h-5 w-5 text-indigo-500" />
-                    <span>AI Analytics</span>
+                    <span>AI Analytico</span>
                 </Link>
 
                 {/* Auth buttons - hidden when hideNavContent is true */}
