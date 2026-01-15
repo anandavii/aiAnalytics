@@ -105,7 +105,7 @@ export default function DashboardClient() {
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,144,255,0.18),transparent_25%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.2),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(94,234,212,0.16),transparent_28%)]" />
 
             <div className="relative z-10">
-                <Navbar variant="app" hideDashboardLink />
+                <Navbar />
                 <div className="container mx-auto pt-24 pb-10 px-4 space-y-8">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex flex-col gap-3">

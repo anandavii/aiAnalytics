@@ -71,8 +71,8 @@ export default function Home() {
       <div className="hero-orb hero-orb-3" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(124,144,255,0.18),transparent_25%),radial-gradient(circle_at_80%_10%,rgba(167,139,250,0.2),transparent_30%),radial-gradient(circle_at_40%_80%,rgba(94,234,212,0.16),transparent_28%)]" />
 
-      {/* Unified Navbar - hide Dashboard link when logged in, hide Sign In when logged out */}
-      <Navbar variant="marketing" hideDashboardLink={!!user} hideNavContent={!user} />
+      {/* Unified Navbar */}
+      <Navbar />
 
       {/* Content - different for logged-in vs logged-out */}
       {loading ? (
